@@ -12,3 +12,6 @@ Front End:
 <ul>
   <li>Compatible web browser with HTML 5 support</li>
 </ul>
+
+
+The project can be accessible at http://moborg.mobproto.com:8080/MobiquitySurvey.
