@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans 
+    xmlns:beans="http://www.springframework.org/schema/beans"
+    xmlns:security="http://www.springframework.org/schema/security"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	
+    xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/aop 
+						http://www.springframework.org/schema/aop/spring-aop.xsd
+						http://www.springframework.org/schema/jdbc  
+						http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+						http://www.springframework.org/schema/context 
+						http://www.springframework.org/schema/context/spring-context.xsd
+                        http://www.springframework.org/schema/security  
+                        http://www.springframework.org/schema/security/spring-security.xsd">
+
+
+	<beans:bean id="loginAuthenticationFilter" class="com.mobiquity.snack.filter.LoginAuthenticationFilter">
+		<beans:property name="usernameParameter" value="username" />
+		<beans:property name="passwordParameter" value="password" />
+	    <beans:property name="authenticationManager" ref="customAuthenticationManager"/>
+	    <!-- <beans:property name="rememberMeServices" ref="rememberMeServices"/> -->
+	    <beans:property name="authenticationFailureHandler" ref="authenticationFailureHandler"/>
+	    <beans:property name="authenticationSuccessHandler" ref="authenticationSuccessHandler"/>
+	</beans:bean>
+	
+	<beans:bean id="authenticationFailureHandler" class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+		<beans:property name="defaultFailureUrl" value="/loginerror?login_error=t"/>
+	</beans:bean>
+
+	<beans:bean id="authenticationSuccessHandler" class="org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler">
+		<beans:constructor-arg value="/authenticate" />
+	</beans:bean>
+		
+	<beans:bean id="customAuthenticationManager" class="org.springframework.security.authentication.ProviderManager">
+		<beans:constructor-arg>
+			<beans:list>
+				<beans:ref bean="daoAuthenticationProvider"/>
+			</beans:list>
+		</beans:constructor-arg>
+		
+		<beans:property name="authenticationEventPublisher" ref="defaultAuthEventPublisher"/>
+	</beans:bean>
+	
+	<beans:bean id="defaultAuthEventPublisher" class="org.springframework.security.authentication.DefaultAuthenticationEventPublisher"/>
+	
+		
+	<beans:bean id="daoAuthenticationProvider" class="org.springframework.security.authentication.dao.DaoAuthenticationProvider">
+	 
+		<beans:property name="passwordEncoder" ref="passwordEncoder"/>
+		<beans:property name="saltSource" ref="saltSource"/>
+	 <!--  -->
+		<beans:property name="userDetailsService" ref="jdbcUserServiceCustom"/>
+		<beans:property name="forcePrincipalAsString" value="false"/>
+	</beans:bean>
+
+	<beans:bean id="jdbcUserServiceCustom" class="com.mobiquity.snack.dao.impl.CustomJdbcDAOImpl">
+	    
+	    <!-- 
+	    	<beans:property name="dataSource" ref="mysqlDataSource"/>
+			<beans:property name="enableGroups" value="false"/>
+			<beans:property name="enableAuthorities" value="true"/>
+			<beans:property name="usersByUsernameQuery" value="select ID, username, password, salt from USERS where username = ?" />
+		 -->
+	 
+	</beans:bean>
+	
+	<beans:bean id="saltSource" class="org.springframework.security.authentication.dao.ReflectionSaltSource" >
+		<beans:property name="userPropertyToUse" value="salt"/>
+	</beans:bean>
+	
+	<beans:bean id="filterSecurityInterceptor" class="org.springframework.security.web.access.intercept.FilterSecurityInterceptor">
+	  <beans:property name="authenticationManager" ref="customAuthenticationManager"/>
+	  <beans:property name="accessDecisionManager" ref="affirmativeBased"/> 
+	  <beans:property name="securityMetadataSource">
+	  <!-- SEC-1256 -->
+	    <security:filter-security-metadata-source  use-expressions="true">
+	        
+	        <security:intercept-url pattern="/resource/**" access="permitAll"/>
+			<security:intercept-url pattern="/index" access="permitAll"/>
+			<security:intercept-url pattern="/loginerror" access="permitAll"/>
+			
+			<!-- Common access grants -->
+			<security:intercept-url pattern="/profile" access="hasAnyRole('ADMIN','USER') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/saveselection" access="hasAnyRole('ADMIN','USER') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/authenticate" access="hasAnyRole('ADMIN','USER') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/showimg/**" access="hasAnyRole('ADMIN','USER') and fullyAuthenticated"/>
+			
+			<!-- Admin access grants -->
+			<security:intercept-url pattern="/adminhome" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/createfeastpoll" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/submitsurvey" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/closesurvey" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/surveyhistory" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/addemployee" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/newemployee" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/createfeedback" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/createfeed" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/closefeedsurvey" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/feedbackhistory" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/changesurveystatus" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/editsurvey" access="hasRole('ADMIN') and fullyAuthenticated"/>
+			
+			
+			<security:intercept-url pattern="/home.do" access="hasRole('ROLE_ACCESS') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/listPets.do" access="hasAnyRole('CAT_BREED_ROLE_CAT_VIEW', 'DOG_BREED_ROLE_DOG_VIEW') and fullyAuthenticated"/>
+			
+			<security:intercept-url pattern="/account/*.do" access="hasAnyRole('ROLE_USER') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/activitylog/**" access="hasAnyRole('ACTIVITY_LOG','SUPER_ADMINISTRATOR') and fullyAuthenticated"/>
+			<security:intercept-url pattern="/forgotPassword/**" access="permitAll"/>
+			<security:intercept-url pattern="/**" access="fullyAuthenticated"/>
+	    </security:filter-security-metadata-source>
+	  
+	  </beans:property>
+	</beans:bean>
+	
+	<beans:bean class="org.springframework.security.access.vote.AffirmativeBased" id="affirmativeBased">
+		<beans:constructor-arg>
+			<beans:list>
+				<beans:ref bean="roleVoter"/>
+				<beans:ref bean="authenticatedVoter"/>
+				<beans:ref bean="expressionVoter"/>
+			</beans:list>
+		</beans:constructor-arg>
+	</beans:bean>
+	
+	<beans:bean class="org.springframework.security.access.vote.RoleVoter" id="roleVoter"/>
+	<beans:bean class="org.springframework.security.access.vote.AuthenticatedVoter" id="authenticatedVoter"/>
+	<beans:bean class="org.springframework.security.web.access.expression.WebExpressionVoter" id="expressionVoter">
+		<beans:property name="expressionHandler" ref="expressionHandler"/>
+	</beans:bean>
+	
+	<beans:bean class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler" id="expressionHandler"/>
+	
+	<beans:bean id="springSecurityFilterChain" class="org.springframework.security.web.FilterChainProxy">
+	  <security:filter-chain-map path-type="ant">
+	     <security:filter-chain pattern="/**" filters="
+	           securityContextPersistenceFilter,
+	           logoutFilter,
+	           loginAuthenticationFilter,
+	          
+	           anonymousProcessingFilter,
+	           exceptionTranslationFilter,
+	           filterSecurityInterceptor" />
+	  </security:filter-chain-map>
+	</beans:bean>
+	
+	<beans:bean id="securityContextPersistenceFilter" class="org.springframework.security.web.context.SecurityContextPersistenceFilter"/>
+	
+	<beans:bean id="passwordEncoder" class="org.springframework.security.authentication.encoding.ShaPasswordEncoder" />
+	
+	<beans:bean id="anonymousProcessingFilter" class="org.springframework.security.web.authentication.AnonymousAuthenticationFilter">
+		<!-- username, default role -->
+		<beans:property name="userAttribute" value="anonymousUser,ROLE_ANONYMOUS"/>
+		<!-- randomly generated key -->
+		<beans:property name="key" value="BF93JFJ091N00Q7HF"/>
+	</beans:bean>
+	
+	<!-- Note the construction of the logout filter differs from most others -->
+	<beans:bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
+		<!-- the post-logout destination -->
+		<beans:constructor-arg value="/"/>
+		<!-- After Remember Me is added -->
+ 		<beans:constructor-arg>
+			<beans:array>
+				<beans:ref bean="logoutHandler"/>
+				<!-- <ref local="rememberMeServices"/> -->
+			</beans:array>
+		</beans:constructor-arg>
+		<!--  This is the logout url href value configured. -->
+		<beans:property name="filterProcessesUrl" value="/logout"/>
+	</beans:bean>
+
+	<beans:bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
+	
+	<beans:bean id="exceptionTranslationFilter" class="org.springframework.security.web.access.ExceptionTranslationFilter">
+	  <beans:constructor-arg ref="authenticationEntryPoint" />
+	  <beans:property name="accessDeniedHandler" ref="accessDeniedHandler"/>
+	</beans:bean>
+	
+	<beans:bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+	  <beans:constructor-arg value="/index"></beans:constructor-arg>
+	</beans:bean>
+	
+	<beans:bean id="accessDeniedHandler" class="org.springframework.security.web.access.AccessDeniedHandlerImpl">
+	  <beans:property name="errorPage" value="/accessDenied"/>
+	</beans:bean>
+	
+</beans:beans>
